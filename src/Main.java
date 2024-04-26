@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.Scanner;
 
 public class Main {
 
@@ -30,31 +29,47 @@ public class Main {
         try (
                 var connection = dataSource.getConnection(
                         props.getProperty("user"),
-                        /*System.getenv("MYSQL_PASS")*/ "1234567890Qw"
+                        props.getProperty("password")
                 );
-        Statement statement = connection.createStatement();
+        Statement statement = connection.createStatement()
         ) {
-            System.out.println("Conexion realizada con exito");
-            String tableName = "music.artists",
-                    columnName = "artist_name",
+            System.out.println("Conexión realizada con exito");
+
+            String tableName    = "music.artists",
+                    columnName  = "artist_name",
                     columnValue = "Bob Dylan";
 
-            String[] columnNames = {"track_number", "song_title", "album_id"},
-                    columnValues = {"1", "song2", "1"},
-                    songs = {"R1", "R2", "R3"};
+            String[]    columnNames     = {"track_number", "song_title", "album_id"},
+                        columnValues    = {"1", "song2", "1"},
+                        songs           = {"R1", "R2", "R3"};
 
-            insertRecord(statement, "music.songs", columnNames, columnValues);
-            System.out.println("1 insertRecord OK");
-            insertArtistAlbum(statement, "Roberto Carlos", "Camino", songs);
-            System.out.println("1 insertArtistAlbum OK");
-            deleteRecord(statement, tableName, columnName, "Mehitabel"); //TODO
-            System.out.println("1 deleteRecord OK");
-            insertRecord(statement, tableName, columnNames, columnValues);          //TODO
-            System.out.println("2 insertRecord OK");
-            updateRecord(statement, tableName, columnName, "Rodrigo R", columnName, "Rodrigo Roman");
-            System.out.println("1 updateRecord OK");
-            deleteRecord(statement, tableName, "artist_name", "AAAA");
-            System.out.println("2 deleteRecord OK");
+            // TESTS DE CREATE --------------------------------------------------
+            //
+            // insertRecord(statement, "music.songs", columnNames, columnValues);
+            // insertRecord(statement, tableName, columnNames, columnValues);
+            // insertArtistAlbum(statement, "Roberto Carlos", "Camino", songs);
+            //
+            // ------------------------------------------------------------------
+
+            // TEST DE READ -----------------------------------------------------
+            //
+            // ResultSet rs = statement.executeQuery("SELECT * FROM music.songs");
+            // printRecords(rs);
+            //
+            // ------------------------------------------------------------------
+
+            // TEST DE UPDATE --------------------------------------------------
+            //
+            // updateRecord(statement, tableName, columnName, "Rodrigo R", columnName, "Rodrigo Roman");
+            //
+            // ------------------------------------------------------------------
+
+            // TESTS DE DELETE --------------------------------------------------
+            //
+            // deleteRecord(statement, tableName, columnName, "Mehitabel");
+            //  deleteRecord(statement, tableName, "artist_name", "AAAA");
+            //
+            // ------------------------------------------------------------------
 
             if (!executeSelect(statement, tableName, columnName, columnValue)) {
                 executeSelect(statement, "music.artists", "artist_id", "2 or artist_id=4 ");
@@ -95,11 +110,11 @@ public class Main {
     /**
      * Hace un select a la base de datos con la clausula "WHERE columnName=columnValue"
      *
-     * @param statement   la sesión a la base de datos
-     * @param table       la tabla a hacer el select
-     * @param columnName  el nombre de la columna a hacer el where
-     * @param columnValue el valor de la columna donde se aplica el where
-     * @throws SQLException en caso de cualquier malformación en el query
+     * @param   statement       la sesión a la base de datos
+     * @param   table           la tabla a hacer el select
+     * @param   columnName      el nombre de la columna a hacer el where
+     * @param   columnValue     el valor de la columna donde se aplica el where
+     * @throws  SQLException    en caso de cualquier malformación en el query
      */
     private static boolean executeSelect(Statement statement, String table,
                                          String columnName, String columnValue) throws SQLException {
@@ -115,36 +130,27 @@ public class Main {
     /**
      * Inserta un nuevo registro a una tabla especificada
      *
-     * @param statement    la sesión de la base de datos
-     * @param table        tabla a escribir el registro
-     * @param columnNames  el nombre de las columnas a insertar
-     * @param columnValues el valor de los columnas a insertar
-     * @throws SQLException en caso de cualquier malformación en el query
+     * @param   statement    la sesión de la base de datos
+     * @param   table        tabla a escribir el registro
+     * @param   columnNames  el nombre de las columnas a insertar
+     * @param   columnValues el valor de los columnas a insertar
+     * @throws  SQLException en caso de cualquier malformación en el query
      */
     private static boolean insertRecord(Statement statement, String table,
                                         String[] columnNames, String[] columnValues) throws SQLException {
 
         String[] fixedColumnValues = columnValues.clone();
-
-        for (int i = 0; i < fixedColumnValues.length; i++) {
-            try {
-                Integer.parseInt(fixedColumnValues[i]);
-            } catch (Exception e) {
+        for (int i = 0; i < fixedColumnValues.length; i++)
+            try { Integer.parseInt(fixedColumnValues[i]); } catch (Exception e) {
                 fixedColumnValues[i] = "'" + fixedColumnValues[i] + "'";
             }
-        }
-
-        String colNames = String.join(",", columnNames),
-                colValues = String.join(",", fixedColumnValues);
-
-        String query = "INSERT INTO " + table + " (" + colNames + ") VALUES (" + colValues + ")";
+        String  colNames    = String.join(",", columnNames),
+                colValues   = String.join(",", fixedColumnValues),
+                query       = "INSERT INTO " + table + " (" + colNames + ") VALUES (" + colValues + ")";
         System.out.println(query);
-        boolean insertResult = statement.execute(query);
+        statement.execute(query);
         int recordsInserted = statement.getUpdateCount();
-        if (recordsInserted > 0) {
-            executeSelect(statement, table, columnNames[0], fixedColumnValues[0]);
-        }
-
+        if (recordsInserted > 0) { executeSelect(statement, table, columnNames[0], fixedColumnValues[0]); }
         return recordsInserted > 0;
     }
 
@@ -173,18 +179,19 @@ public class Main {
     /**
      * Actualiza los valores de un registro en una tabla
      *
-     * @param statement     la sesión de la base de datos
-     * @param table         tabla a modificar
-     * @param matchedColumn la columna a modificar
-     * @param matchedValue  el valor del registro a modificar
-     * @param updateColumn  la nueva columna
-     * @param updateValue   el nuevo valor
-     * @throws SQLException en caso de cualquier malformación en el query
+     * @param   statement       la sesión de la base de datos
+     * @param   table           tabla a modificar
+     * @param   matchedColumn   la columna a modificar
+     * @param   matchedValue    el valor del registro a modificar
+     * @param   updateColumn    la nueva columna
+     * @param   updateValue     el nuevo valor
+     * @throws  SQLException    en caso de cualquier malformación en el query
      */
     private static boolean updateRecord(Statement statement, String table,
                                         String matchedColumn, String matchedValue,
                                         String updateColumn, String updateValue) throws SQLException {
-        String query = "UPDATE " + table + " SET " + updateColumn + " ='" + updateValue + "' WHERE " + matchedColumn + "='" + matchedValue + "'";
+        String query = "UPDATE " + table + " SET " + updateColumn + " ='" + updateValue + "' WHERE " +
+                        matchedColumn + "='" + matchedValue + "'";
         System.out.println(query);
         statement.execute(query);
         int recordsUpdated = statement.getUpdateCount();
@@ -196,23 +203,23 @@ public class Main {
 
 
     /**
-     * Inserta un nuevo alnum de algún artista
-     *
-     * @param statement  la sesión a la base de datos
-     * @param artistName el nombre del artista
-     * @param albumName  el nombre del album
-     * @param songs      los nombres de las canciones
-     * @throws SQLException en caso de alguna malformación en el query
+     * Inserta un nuevo album de algún artista
+     * @param   statement   la sesión a la base de datos
+     * @param   artistName  el nombre del artista
+     * @param   albumName   el nombre del album
+     * @param   songs       los nombres de las canciones
+     * @throws  SQLException en caso de alguna malformación en el query
      */
     private static void insertArtistAlbum(Statement statement,
                                           String artistName,
-                                          String albumName, String[] songs)
-            throws SQLException {
+                                          String albumName, String[] songs) throws SQLException {
 
-        String artistInsert = "INSERT INTO music.artists (artist_name) VALUES (" + statement.enquoteLiteral(artistName) + ")";
+        String  artistInsert    = "INSERT INTO music.artists (artist_name) VALUES (" +
+                                    statement.enquoteLiteral(artistName) + ")",
+                songInsert      = "INSERT INTO music.songs " +
+                                    "(track_number, song_title, album_id) VALUES (%d, %s, %d)";
         System.out.println(artistInsert);
         statement.execute(artistInsert, Statement.RETURN_GENERATED_KEYS);
-
         ResultSet rs = statement.getGeneratedKeys();
         int artistId = (rs != null && rs.next()) ? rs.getInt(1) : -1;
         String albumInsert = "INSERT INTO music.albums (album_name, artist_id)" +
@@ -221,15 +228,10 @@ public class Main {
         statement.execute(albumInsert, Statement.RETURN_GENERATED_KEYS);
         rs = statement.getGeneratedKeys();
         int albumId = (rs != null && rs.next()) ? rs.getInt(1) : -1;
-
-        String songInsert = "INSERT INTO music.songs " +
-                "(track_number, song_title, album_id) VALUES (%d, %s, %d)";
-
         for (int i = 0; i < songs.length; i++) {
             String songQuery = songInsert.formatted(i + 1,
                     statement.enquoteLiteral(songs[i]), albumId);
             System.out.println(songQuery);
-
             statement.execute(songQuery);
         }
     }
